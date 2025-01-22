@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Live Drone Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0; padding: 0;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            font-size: 1.2em;
+        }
+        img {
+            max-width: 80%;
+            height: auto;
+            margin-top: 20px;
+        }
+    </style>
+    <script>
+        async function fetchPrediction() {
+            try {
+                const response = await fetch('/data');
+                const data = await response.json();
+                document.getElementById('prediction').innerText = `Prediction: ${data.class}`;
+            } catch (error) {
+                console.error('Error fetching prediction:', error);
+            }
+        }
+
+        function updateSpectrogram() {
+            const spectrogram = document.getElementById('spectrogram');
+            // Cache-busting param so the browser fetches a fresh image each time
+            spectrogram.src = `/spectrogram?${new Date().getTime()}`;
+        }
+
+        // Refresh every 3 seconds
+        setInterval(fetchPrediction, 3000);
+        setInterval(updateSpectrogram, 3000);
+    </script>
+</head>
+<body>
+    <h1>Live Drone Detection</h1>
+    <p id="prediction">Prediction: Waiting...</p>
+    <img id="spectrogram" src="/spectrogram" alt="Live Spectrogram" />
+</body>
+</html>
