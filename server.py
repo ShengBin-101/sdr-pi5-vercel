@@ -7,17 +7,12 @@ import time
 
 app = Flask(__name__)
 
-# -----------------------------
-# 1) Keep old predictions storage
-# -----------------------------
+# Predictions for acoustic part
 predictions = {"class": "Waiting...", "spectrogram": None}
 
-# -----------------------------
-# 2) Class to store Pi feed data
-# -----------------------------
 class PiFeedStorage:
     def __init__(self):
-        self.latest_frame = None  # Will hold raw JPEG bytes
+        self.latest_frame = None  # raw JPEG
         self.drone_count = 0
 
     def set_frame(self, frame_bytes):
@@ -29,24 +24,9 @@ class PiFeedStorage:
     def get_drone_count(self):
         return self.drone_count
 
-    def generate_frames(self):
-        """
-        Yields the stored frame as an MJPEG stream for /video_feed.
-        """
-        while True:
-            if self.latest_frame is not None:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' +
-                       self.latest_frame + b'\r\n')
-            else:
-                time.sleep(0.1)
-
-# A single global instance to store the RPi's data
+# One global instance
 pi_storage = PiFeedStorage()
 
-# -----------------------------
-# 3) All your old endpoints
-# -----------------------------
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -83,40 +63,30 @@ def update_prediction():
     predictions["spectrogram"] = data.get("spectrogram", None)
     return jsonify({"status": "success"}), 200
 
-# -----------------------------
-# 4) UNCHANGED /video_feed
-# -----------------------------
-@app.route("/video_feed")
-def video_feed():
-    # Serve the frames from pi_storage
-    return Response(pi_storage.generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# -----------------------------
-# 5) UNCHANGED /drone_count
-# -----------------------------
 @app.route("/drone_count")
 def drone_count():
     return jsonify({"count": pi_storage.get_drone_count()})
 
-# -----------------------------
-# 6) NEW ENDPOINT: /update_feed
-# -----------------------------
+# ---------------------------------------------------------------------
+# SINGLE Image at /video_feed (no streaming)
+# Each HTTP request returns the current JPEG, then closes.
+# ---------------------------------------------------------------------
+@app.route("/video_feed")
+def video_feed():
+    if pi_storage.latest_frame is None:
+        return "No frame available", 404
+    # Return the single latest frame
+    return Response(pi_storage.latest_frame, mimetype='image/jpeg')
+
 @app.route("/update_feed", methods=["POST"])
 def update_feed():
-    """
-    The Pi posts the latest frame + drone_count here.
-    We'll store them in pi_storage.
-    """
     file = request.files.get('frame', None)
     drone_count_str = request.form.get('drone_count', '0')
 
-    # If we got a frame, store it
     if file:
-        frame_bytes = file.read()  # raw JPEG bytes
+        frame_bytes = file.read()
         pi_storage.set_frame(frame_bytes)
 
-    # Convert the drone count to int
     try:
         drone_count_int = int(drone_count_str)
     except ValueError:
@@ -125,7 +95,6 @@ def update_feed():
 
     return jsonify({"status": "success"}), 200
 
-# CORS (if needed)
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'

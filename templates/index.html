@@ -97,19 +97,30 @@
             spectrogram.src = `/spectrogram?${new Date().getTime()}`;
         }
 
+        // [ADDED LINES] - Make /video_feed act like a polled single image
         function checkVideoFeed() {
             const img = document.querySelector('.video-feed');
-            if (img.naturalWidth === 0) {
-                document.getElementById('video-error').style.display = 'block';
-            } else {
-                document.getElementById('video-error').style.display = 'none';
-            }
+            // Force re-fetch with timestamp param
+            img.src = `/video_feed?ts=${Date.now()}`;
+
+            // Then wait a short moment to check if it loaded
+            setTimeout(() => {
+                if (img.naturalWidth === 0) {
+                    document.getElementById('video-error').style.display = 'block';
+                    img.style.display = 'none';
+                } else {
+                    document.getElementById('video-error').style.display = 'none';
+                    img.style.display = 'block';
+                }
+            }, 500);
         }
 
         // Update data every 1.5 seconds
         setInterval(updateData, 1500);
         setInterval(updateSpectrogram, 1500);
-        setInterval(checkVideoFeed, 5000);
+
+        // [ADDED LINE] Poll the single image every 2 seconds or so
+        setInterval(checkVideoFeed, 2000);
     </script>
 </head>
 <body>
