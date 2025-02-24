@@ -39,20 +39,12 @@ def data():
 def spectrogram_image():
     if predictions["spectrogram"] is None:
         return "No spectrogram available yet.", 404
-
-    spec_array = np.array(predictions["spectrogram"])
-    fig = Figure(figsize=(8, 4))
-    ax = fig.add_subplot(111)
-    im = ax.imshow(spec_array, aspect='auto', cmap='viridis')
-    ax.set_title("Live Spectrogram")
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Frequency")
-    fig.colorbar(im, ax=ax, label="Power (dB)")
-
-    buf = BytesIO()
-    FigureCanvas(fig).print_png(buf)
-    buf.seek(0)
-    return Response(buf.getvalue(), mimetype='image/png')
+    import base64
+    try:
+        img_bytes = base64.b64decode(predictions["spectrogram"])
+    except Exception as e:
+        return "Error decoding spectrogram.", 500
+    return Response(img_bytes, mimetype='image/png')
 
 @app.route("/updatePrediction", methods=["POST"])
 def update_prediction():
