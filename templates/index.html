@@ -1,159 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Live Drone Detection</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Drone Detection</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .main-container {
+      max-width: 1800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+    }
+    .spectrogram-container, .video-container {
+      flex: 1;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .title-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .feed-container {
+      width: 100%;
+      position: relative;
+    }
+    .feed-container img {
+      width: 100%;
+      height: auto;
+      border-radius: 5px;
+    }
+    .stats {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    /* Spectrogram styling: center image and fix height */
+    .spectrogram-container .feed-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 480px;  /* Adjust to match video feed height */
+    }
+    .spectrogram-container .feed-container img {
+      max-height: 100%;
+      width: auto;
+    }
+  </style>
+  <script>
+    async function updateData() {
+      try {
+        const predResponse = await fetch('/data');
+        const predData = await predResponse.json();
+        document.getElementById('prediction').innerText = `Prediction: ${predData.class}`;
+  
+        const droneResponse = await fetch('/drone_count');
+        const droneData = await droneResponse.json();
+        document.getElementById('drone-count').innerText = droneData.count;
+        
+        const statusElement = document.getElementById('status');
+        if (droneData.count > 0) {
+          statusElement.innerText = "🚨 DRONE DETECTED";
+          statusElement.style.backgroundColor = "#ffebee";
+        } else {
+          statusElement.innerText = "✓ No Drones Detected";
+          statusElement.style.backgroundColor = "#e8f5e9";
         }
-        .main-container {
-            max-width: 1800px;
-            margin: 0 auto;
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-        }
-        .spectrogram-container, .video-container {
-            flex: 1;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .title-section {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .feed-container {
-            width: 100%;
-            position: relative;
-        }
-        .feed-container img {
-            width: 100%;
-            height: auto;
-            border-radius: 5px;
-        }
-        .stats {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .status {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #e8f5e9;
-            border-radius: 5px;
-            display: inline-block;
-        }
-        .error {
-            background-color: #ffebee;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        h2 {
-            color: #444;
-            margin-bottom: 15px;
-        }
-    </style>
-    <script>
-        async function updateData() {
-            try {
-                // Fetch prediction
-                const predResponse = await fetch('/data');
-                const predData = await predResponse.json();
-                document.getElementById('prediction').innerText = `Prediction: ${predData.class}`;
-
-                // Fetch drone count
-                const droneResponse = await fetch('/drone_count');
-                const droneData = await droneResponse.json();
-                const countElement = document.getElementById('drone-count');
-                countElement.innerText = droneData.count;
-                
-                // Update status
-                const statusElement = document.getElementById('status');
-                if (droneData.count > 0) {
-                    statusElement.innerText = "🚨 DRONE DETECTED";
-                    statusElement.style.backgroundColor = "#ffebee";
-                } else {
-                    statusElement.innerText = "✓ No Drones Detected";
-                    statusElement.style.backgroundColor = "#e8f5e9";
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        function updateSpectrogram() {
-            const spectrogram = document.getElementById('spectrogram');
-            spectrogram.src = `/spectrogram?${new Date().getTime()}`;
-        }
-
-        // [ADDED LINES] - Make /video_feed act like a polled single image
-        function checkVideoFeed() {
-            const img = document.querySelector('.video-feed');
-            // Force re-fetch with timestamp param
-            img.src = `/video_feed?ts=${Date.now()}`;
-
-            // Then wait a short moment to check if it loaded
-            setTimeout(() => {
-                if (img.naturalWidth === 0) {
-                    document.getElementById('video-error').style.display = 'block';
-                    img.style.display = 'none';
-                } else {
-                    document.getElementById('video-error').style.display = 'none';
-                    img.style.display = 'block';
-                }
-            }, 500);
-        }
-
-        // Update data every 1.5 seconds
-        setInterval(updateData, 1500);
-        setInterval(updateSpectrogram, 1500);
-
-        // [ADDED LINE] Poll the single image every 2 seconds or so
-        setInterval(checkVideoFeed, 1000);
-    </script>
+      } catch (error) {
+        console.error("Error updating data:", error);
+      }
+    }
+  
+    function updateSpectrogram() {
+      const spectrogram = document.getElementById('spectrogram');
+      spectrogram.src = `/spectrogram?${new Date().getTime()}`;
+    }
+  
+    setInterval(updateData, 1000);
+    setInterval(updateSpectrogram, 1000);
+  </script>
 </head>
 <body>
-    <div class="title-section">
-        <h1>Live Drone Detection System</h1>
+  <div class="title-section">
+    <h1>Live Drone Detection System</h1>
+  </div>
+  
+  <div class="main-container">
+    <div class="spectrogram-container">
+      <h2>Spectrogram Analysis</h2>
+      <div class="feed-container">
+        <img id="spectrogram" src="/spectrogram" alt="Live Spectrogram">
+      </div>
+      <div class="stats">
+        <p id="prediction">Prediction: Waiting...</p>
+      </div>
     </div>
-
-    <div class="main-container">
-        <div class="spectrogram-container">
-            <h2>Spectrogram Analysis</h2>
-            <div class="feed-container">
-                <img id="spectrogram" src="/spectrogram" alt="Live Spectrogram" />
-            </div>
-            <div class="stats">
-                <p id="prediction">Prediction: Waiting...</p>
-            </div>
-        </div>
-
-        <div class="video-container">
-            <h2>Visual Detection</h2>
-            <div class="feed-container">
-                <img src="/video_feed" alt="Live Drone Detection" class="video-feed" 
-                     onerror="this.style.display='none';document.getElementById('video-error').style.display='block';"
-                     onload="this.style.display='block';document.getElementById('video-error').style.display='none';" />
-                <div id="video-error" style="display: none; color: red; padding: 20px;">
-                    Error loading video feed. Please refresh the page.
-                </div>
-            </div>
-            <div class="stats">
-                <p>Current Drone Count: <span id="drone-count">0</span></p>
-                <div id="status" class="status">✓ No Drones Detected</div>
-            </div>
-        </div>
+  
+    <div class="video-container">
+      <h2>Visual Detection</h2>
+      <div class="feed-container">
+        <img id="video-feed" src="/video_feed" alt="Live Video Feed">
+      </div>
+      <div class="stats">
+        <p>Current Drone Count: <span id="drone-count">0</span></p>
+        <div id="status" class="status">✓ No Drones Detected</div>
+      </div>
     </div>
+  </div>
 </body>
 </html>
