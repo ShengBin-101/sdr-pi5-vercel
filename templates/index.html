@@ -38,18 +38,17 @@
       height: auto;
       border-radius: 5px;
     }
-    /* Spectrogram container: set fixed height and center the image */
+    /* Spectrogram container: fixed max-height and centered image */
     .spectrogram-container .feed-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 480px; /* set this to match your video feed height */
+      height: 480px; /* Adjust to match video feed height */
     }
     .spectrogram-container .feed-container img {
       max-height: 100%;
       width: auto;
       display: block;
-      margin: 0 auto;
     }
     .stats {
       background: white;
@@ -80,14 +79,17 @@
   <script>
     async function updateData() {
       try {
+        // Fetch prediction
         const predResponse = await fetch('/data');
         const predData = await predResponse.json();
         document.getElementById('prediction').innerText = `Prediction: ${predData.class}`;
 
+        // Fetch drone count
         const droneResponse = await fetch('/drone_count');
         const droneData = await droneResponse.json();
         document.getElementById('drone-count').innerText = droneData.count;
-
+        
+        // Update status
         const statusElement = document.getElementById('status');
         if (droneData.count > 0) {
           statusElement.innerText = "🚨 DRONE DETECTED";
@@ -103,10 +105,15 @@
 
     function updateSpectrogram() {
       const spectrogram = document.getElementById('spectrogram');
+      // Correct usage of template literal for the URL
       spectrogram.src = `/spectrogram?${new Date().getTime()}`;
     }
 
-    // Poll the video feed to check if it loads correctly.
+    // Update data and spectrogram every 1.5 seconds.
+    setInterval(updateData, 1500);
+    setInterval(updateSpectrogram, 1500);
+
+    // Video feed polling remains unchanged.
     function checkVideoFeed() {
       const img = document.querySelector('.video-feed');
       img.src = `/video_feed?ts=${Date.now()}`;
@@ -120,10 +127,6 @@
         }
       }, 500);
     }
-
-    // Update data and spectrogram every 1.5 seconds
-    setInterval(updateData, 1500);
-    setInterval(updateSpectrogram, 1500);
     setInterval(checkVideoFeed, 1000);
   </script>
 </head>
@@ -136,7 +139,7 @@
     <div class="spectrogram-container">
       <h2>Spectrogram Analysis</h2>
       <div class="feed-container">
-        <img id="spectrogram" src="/spectrogram" alt="Live Spectrogram" />
+        <img id="spectrogram" src="/spectrogram" alt="Live Spectrogram">
       </div>
       <div class="stats">
         <p id="prediction">Prediction: Waiting...</p>
@@ -146,9 +149,9 @@
     <div class="video-container">
       <h2>Visual Detection</h2>
       <div class="feed-container">
-        <img src="/video_feed" alt="Live Drone Detection" class="video-feed"
+        <img src="/video_feed" alt="Live Drone Detection" class="video-feed" 
              onerror="this.style.display='none';document.getElementById('video-error').style.display='block';"
-             onload="this.style.display='block';document.getElementById('video-error').style.display='none';" />
+             onload="this.style.display='block';document.getElementById('video-error').style.display='none';">
         <div id="video-error" style="display: none; color: red; padding: 20px;">
           Error loading video feed. Please refresh the page.
         </div>
