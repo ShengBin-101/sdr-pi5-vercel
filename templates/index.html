@@ -38,17 +38,10 @@
       height: auto;
       border-radius: 5px;
     }
-    /* Spectrogram container: fixed max-height and centered image */
-    .spectrogram-container .feed-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 480px; /* Adjust to match video feed height */
-    }
-    .spectrogram-container .feed-container img {
-      max-height: 100%;
-      width: auto;
+    .spectrogram-container img {
+      max-height: 480px;  /* Adjust this value to match your video feed height */
       display: block;
+      margin: 0 auto;
     }
     .stats {
       background: white;
